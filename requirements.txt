@@ -1,0 +1,16 @@
+# AidLink Core Requirements (Flask deployment)
+
+# Core Framework
+flask==2.3.3
+flask-cors==4.0.0
+python-dotenv==1.0.0
+
+# API Clients
+requests==2.31.0
+
+# Google AI (Gemini)
+google-generativeai==0.3.2
+
+# Production Server (for deployment)
+gunicorn==21.2.0
+
