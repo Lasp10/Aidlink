@@ -16,9 +16,13 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 from datetime import datetime
+from pathlib import Path
 
-# Load env
-load_dotenv('aidlink.env')
+# Load env if present (safe default for production)
+ENV_FILE = os.getenv('AIDLINK_ENV_FILE', 'aidlink.env')
+env_path = Path(ENV_FILE)
+if env_path.exists():
+    load_dotenv(env_path)
 
 # Import local modules used by Netlify Functions
 from google_places_client import GooglePlacesClient
