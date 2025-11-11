@@ -1,6 +1,12 @@
 .venv
 __pycache__/
 *.pyc
+
+# Local environment and caches
 aidlink.env
+AIDLINK/aidlink.env
+
+# Local data/db files
 data/
+AIDLINK/data/
 
