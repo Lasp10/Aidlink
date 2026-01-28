@@ -1,7 +1,24 @@
-# Environment variables (NEVER commit these!)
+# Environment variables and API keys (NEVER commit these!)
 aidlink.env
 *.env
 .env
+.env.*
+*.env.local
+*.env.*.local
+
+# API Keys and Secrets
+*api*key*
+*secret*
+*password*
+*token*
+*credentials*
+config.json
+secrets.json
+.secrets
+
+# Specific key files
+AIDLINK/aidlink.env
+aidlink.env
 
 # Python
 __pycache__/
