@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-
-
 import requests
 import os
 from pathlib import Path
@@ -14,7 +11,7 @@ if env_path.exists():
 
 class GooglePlacesClient:
     """Client for Google Places API - real-time community resources"""
-    
+        
     def __init__(self, api_key: str = None):
         """Initialize Google Places client"""
         self.api_key = api_key or os.getenv('GOOGLE_PLACES_API_KEY')
@@ -441,4 +438,3 @@ if __name__ == "__main__":
         print("⚠️ Google Places API not configured - using fallback mode")
         print("Get a free API key at: https://console.cloud.google.com/")
         print("💡 Free tier: $200/month credit!")
-

@@ -8,7 +8,7 @@ Purpose
 Usage
 - pip install flask flask-cors python-dotenv requests google-generativeai
 - python3 dynamic_app.py
-- Open http://localhost:5006
+- Open http://localhost:8000
 """
 
 from flask import Flask, request, jsonify, send_file
@@ -38,7 +38,13 @@ CORS(app)
 @app.route('/')
 def index():
     # Serve the same frontend as Netlify (root index.html)
-    return send_file('index.html')
+    # Look for index.html in current dir, then parent dir
+    index_path = Path('index.html')
+    if not index_path.exists():
+        index_path = Path('../index.html')
+    if not index_path.exists():
+        index_path = Path(__file__).parent.parent / 'index.html'
+    return send_file(str(index_path))
 
 
 @app.route('/api/status')
@@ -149,8 +155,10 @@ def analyze_eligibility():
 
 
 def main():
-    port = int(os.getenv('PORT', 5006))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    port = int(os.getenv('PORT', 8000))
+    # Disable debug in production (set DEBUG=False in environment)
+    debug = os.getenv('DEBUG', 'False').lower() == 'true'
+    app.run(host='0.0.0.0', port=port, debug=debug)
 
 
 if __name__ == '__main__':

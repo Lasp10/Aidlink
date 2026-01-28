@@ -1,7 +1,0 @@
-[service]
-name = "aidlink"
-
-[service.build]
-builder = "dockerfile"
-dockerfilePath = "./Dockerfile"
-

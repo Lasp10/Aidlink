@@ -21,21 +21,29 @@ class AIEligibilityAssistant:
     
     def __init__(self):
         self.api_key = os.getenv('GEMINI_API_KEY')
-        if self.api_key:
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
-            self.available = True
+        # Check if API key is set and not a placeholder
+        if self.api_key and self.api_key != 'replace_with_gemini_key' and not self.api_key.startswith('replace_with'):
+            try:
+                genai.configure(api_key=self.api_key)
+                self.model = genai.GenerativeModel('gemini-2.5-flash')
+                self.available = True
+                print("✅ Gemini API configured")
+            except Exception as e:
+                self.available = False
+                print(f"⚠️ Gemini API configuration error: {e}")
         else:
             self.available = False
-            print("⚠️ Gemini API key not found - using fallback mode")
+            print("⚠️ Gemini API key not configured - using fallback mode")
+            print("   Get a free API key at: https://aistudio.google.com/app/apikey")
     
-    def analyze_user_situation(self, user_input: str, context: Dict = None) -> Dict[str, Any]:
+    def analyze_user_situation(self, user_input: str, context: Dict = None, location: str = None) -> Dict[str, Any]:
         """
         Analyze user's situation and determine what programs they likely qualify for
         
         Args:
             user_input: Natural language description of user's situation
             context: Optional context (previous responses, location, etc.)
+            location: User's location for location-specific recommendations
         
         Returns:
             Comprehensive analysis with eligibility assessment
@@ -45,10 +53,13 @@ class AIEligibilityAssistant:
         
         try:
             # Build comprehensive prompt
+            location_context = f"\n\nUser Location: {location}" if location else ""
             prompt = f"""
 You are an expert social services eligibility navigator. Your job is to analyze a person's situation and determine what government and community assistance programs they might qualify for.
 
-User Situation: "{user_input}"
+User Situation: "{user_input}"{location_context}
+
+IMPORTANT: Focus on programs and resources available in the user's specific location. If a location is provided, prioritize local programs, services, and organizations in that area.
 
 Please provide a comprehensive analysis in JSON format with:
 1. situation_summary: Brief summary of their situation
@@ -60,7 +71,7 @@ Please provide a comprehensive analysis in JSON format with:
    - confidence: How likely they qualify (0-1)
    - why_they_qualify: Specific reasons
    - what_they_need: Required documents/requirements
-   - how_to_apply: Next steps
+   - how_to_apply: Next steps (include location-specific contact info if location provided)
 5. urgency_score: How urgent their needs are (1-10)
 6. priority_order: Recommended order to address needs
 7. barriers_identified: List of potential obstacles
@@ -95,10 +106,7 @@ IMPORTANT: Respond with ONLY valid JSON. Start with {{ and end with }}.
             return self._fallback_analysis(user_input)
     
     def create_action_plan_from_resources(self, analysis: Dict[str, Any], resources: List[Dict], location: str = None) -> Dict[str, Any]:
-        """
-        Create SHORT, EFFICIENT action plan from best 2-3 resources
-        Prioritizes quality and avoids overwhelming users
-        """
+
         if not self.available or not resources:
             return self._get_immediate_action_plan(analysis, location)
         
@@ -106,13 +114,16 @@ IMPORTANT: Respond with ONLY valid JSON. Start with {{ and end with }}.
         best_resources = resources[:3]
         
         try:
+            location_context = f"\n\nUser Location: {location}" if location else ""
             prompt = f"""
 User needs help, you found these resources. Create a DETAILED action plan.
 
-User situation: {analysis.get('analysis', {}).get('situation_summary', 'Need assistance')}
+User situation: {analysis.get('analysis', {}).get('situation_summary', 'Need assistance')}{location_context}
 
-Actual Resources Found:
+Actual Resources Found (these are REAL resources in the user's area):
 {json.dumps(best_resources, indent=2)}
+
+IMPORTANT: These resources are location-specific. Use the EXACT names, addresses, and phone numbers from the resources above. The user is in {location or 'their local area'}.
 
 Create action plan with 2-3 detailed steps using THESE EXACT resources.
 
@@ -120,22 +131,23 @@ Return this JSON format:
 {{
   "urgent_actions": [
     {{
-      "action": "What to do with this specific resource",
+      "action": "What to do with this specific resource (use exact resource name)",
       "why": "Why this resource helps their situation",
-      "phone_number": "exact phone from resource",
-      "address": "exact address from resource",
+      "phone_number": "exact phone from resource above",
+      "address": "exact address from resource above",
       "timeframe": "When to do this (today/this week)"
     }}
   ]
 }}
 
 RULES:
-- Use ACTUAL resource names, phones, addresses
+- Use ACTUAL resource names, phones, addresses from the resources list above
 - Include context (why it helps)
 - Add timeframe for each action
 - Be specific to their situation
 - 2-3 steps max
 - Prioritize resources with transportation assistance or shorter distances
+- All resources must be from the list above - do not make up resources
 
 Return JSON only.
 """
@@ -180,13 +192,16 @@ Return JSON only.
         
         try:
             # Create comprehensive action plan
+            user_location = location or 'Sacramento, CA'
             prompt = f"""
 Based on this eligibility analysis, create a COMPREHENSIVE action plan that helps someone take real steps.
 
 Analysis:
 {json.dumps(analysis.get('analysis', {}), indent=2)}
 
-User Location: {location or 'Sacramento, CA'}
+User Location: {user_location}
+
+CRITICAL: The user is located in {user_location}. You MUST provide location-specific resources, addresses, phone numbers, and organizations that are actually in or near {user_location}. Do NOT use generic examples - use real, specific resources for {user_location}.
 
 Generate a detailed action plan with:
 1. Immediate actions (today)
@@ -197,10 +212,10 @@ Return JSON with:
 {{
   "urgent_actions": [
     {{
-      "action": "Specific, actionable step (what to do)",
+      "action": "Specific, actionable step with location-specific details (what to do)",
       "why": "Why this matters for them",
-      "phone_number": "actual phone if applicable",
-      "address": "address if needed",
+      "phone_number": "actual phone number for {user_location} area",
+      "address": "specific address in {user_location}",
       "timeframe": "When to do this (today, this week, this month)",
       "documents_needed": "What they need to bring/prepare"
     }}
@@ -212,20 +227,23 @@ Return JSON with:
 
 RULES:
 - Be specific and actionable
-- Include real phone numbers when possible
+- Include real phone numbers for {user_location} area when possible
+- Provide specific addresses in {user_location}
+- Focus on resources actually available in {user_location}
 - Provide context (why each step matters)
 - Make it encouraging, not overwhelming
 - Max 5 actions total
+- IMPORTANT: All resources must be location-specific to {user_location}
 
-Example structure:
+Example structure for {user_location}:
 {{
   "urgent_actions": [
-    {{"action": "Call 211 today to speak with a resource specialist", "why": "211 connects you to local assistance programs", "phone_number": "211", "address": "Dial 2-1-1 from any phone", "timeframe": "today", "documents_needed": "None - just your situation"}},
-    {{"action": "Call Sacramento Food Bank for emergency food assistance", "why": "You mentioned food insecurity - they provide immediate help", "phone_number": "(916) 456-1980", "address": "3333 3rd Ave, Sacramento", "timeframe": "today", "documents_needed": "None required"}}
+    {{"action": "Call 211 today to speak with a resource specialist in {user_location}", "why": "211 connects you to local assistance programs in your area", "phone_number": "211", "address": "Dial 2-1-1 from any phone - available in {user_location}", "timeframe": "today", "documents_needed": "None - just your situation"}},
+    {{"action": "Contact local food assistance programs in {user_location}", "why": "You mentioned food insecurity - local programs provide immediate help", "phone_number": "Check 211 or local food bank", "address": "Search for food banks in {user_location}", "timeframe": "today", "documents_needed": "None required"}}
   ],
   "timeline": "You should see progress within 24-48 hours",
-  "priority_order": "1. Call 211 first (they connect you to everything), 2. Contact food bank if hungry today, 3. Apply for benefits this week",
-  "encouragement": "You're taking the right steps! Help is available and you're not alone."
+  "priority_order": "1. Call 211 first (they connect you to everything in {user_location}), 2. Contact local food assistance if hungry today, 3. Apply for benefits this week",
+  "encouragement": "You're taking the right steps! Help is available in {user_location} and you're not alone."
 }}
 
 Respond with ONLY valid JSON.

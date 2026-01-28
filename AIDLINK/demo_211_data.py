@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
-"""
-Verified Sacramento Community Resources
-Real community resources with verified addresses in the greater Sacramento area
-"""
+
 
 def get_demo_211_data(query, location, category, max_results=10):
-    """Simulate 211 API response with realistic data"""
     
     # REAL community resources data (these are actual organizations that exist)
     demo_resources = {

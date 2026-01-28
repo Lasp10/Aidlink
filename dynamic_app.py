@@ -8,21 +8,32 @@ Purpose
 Usage
 - pip install flask flask-cors python-dotenv requests google-generativeai
 - python3 dynamic_app.py
-- Open http://localhost:5006
+- Open http://localhost:8000
 """
 
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
 # Load env if present (safe default for production)
 ENV_FILE = os.getenv('AIDLINK_ENV_FILE', 'aidlink.env')
+base_path = Path(__file__).resolve().parent
 env_path = Path(ENV_FILE)
+if not env_path.exists():
+    alt_env = base_path / 'AIDLINK' / ENV_FILE
+    if alt_env.exists():
+        env_path = alt_env
 if env_path.exists():
     load_dotenv(env_path)
+
+# Ensure local modules in nested AIDLINK directory are importable
+app_module_dir = base_path / 'AIDLINK'
+if app_module_dir.exists():
+    sys.path.insert(0, str(app_module_dir))
 
 # Import local modules used by Netlify Functions
 from google_places_client import GooglePlacesClient
@@ -131,7 +142,7 @@ def analyze_eligibility():
                 'ai_model': 'simple_fallback'
             })
 
-        analysis = assistant.analyze_user_situation(situation)
+        analysis = assistant.analyze_user_situation(situation, location=location)
         if resources_found:
             plan = assistant.create_action_plan_from_resources(analysis, resources_found, location)
         else:
@@ -149,7 +160,7 @@ def analyze_eligibility():
 
 
 def main():
-    port = int(os.getenv('PORT', 5006))
+    port = int(os.getenv('PORT', 8000))
     app.run(host='0.0.0.0', port=port, debug=True)
 
 
