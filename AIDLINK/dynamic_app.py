@@ -48,12 +48,23 @@ CORS(app)
 @app.route('/')
 def index():
     # Serve the same frontend as Netlify (root index.html)
-    # Look for index.html in current dir, then parent dir
-    index_path = Path('index.html')
+    # Look for index.html in parent directory (root of project)
+    # Get the absolute path to the project root
+    current_file = Path(__file__).resolve()
+    project_root = current_file.parent.parent  # Go up from AIDLINK/ to root
+    index_path = project_root / 'index.html'
+    
+    # Fallback: try current directory if parent doesn't exist
     if not index_path.exists():
-        index_path = Path('../index.html')
+        index_path = Path('index.html')
+    
     if not index_path.exists():
-        index_path = Path(__file__).parent.parent / 'index.html'
+        # Last resort: try relative to current working directory
+        index_path = Path.cwd() / 'index.html'
+    
+    if not index_path.exists():
+        return jsonify({'error': 'index.html not found'}), 500
+    
     return send_file(str(index_path))
 
 
