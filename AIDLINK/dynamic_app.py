@@ -15,6 +15,7 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -24,11 +25,20 @@ env_path = Path(ENV_FILE)
 if env_path.exists():
     load_dotenv(env_path)
 
-# Import local modules used by Netlify Functions
-from google_places_client import GooglePlacesClient
-from openstreetmap_community_client import OSMCommunityClient
-from ai_eligibility_assistant import AIEligibilityAssistant
-from demo_211_data import get_demo_211_data
+# Import local modules - use relative imports when imported as package,
+# or direct imports when run directly
+try:
+    # Try relative imports first (when imported as AIDLINK.dynamic_app)
+    from .google_places_client import GooglePlacesClient
+    from .openstreetmap_community_client import OSMCommunityClient
+    from .ai_eligibility_assistant import AIEligibilityAssistant
+    from .demo_211_data import get_demo_211_data
+except ImportError:
+    # Fallback to direct imports (when run directly)
+    from google_places_client import GooglePlacesClient
+    from openstreetmap_community_client import OSMCommunityClient
+    from ai_eligibility_assistant import AIEligibilityAssistant
+    from demo_211_data import get_demo_211_data
 
 
 app = Flask(__name__, static_folder=None)

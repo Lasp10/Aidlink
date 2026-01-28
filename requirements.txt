@@ -14,3 +14,7 @@ google-generativeai==0.3.2
 # Production Server (for deployment)
 gunicorn==21.2.0
 
+# Note: Local modules (google_places_client.py, ai_eligibility_assistant.py, etc.)
+# are part of the codebase in the AIDLINK/ directory and don't need to be installed.
+# They are imported directly by dynamic_app.py which adds AIDLINK/ to sys.path.
+

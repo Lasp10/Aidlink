@@ -3,7 +3,7 @@ services:
     name: aidlink
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn AIDLINK.dynamic_app:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn dynamic_app:app --bind 0.0.0.0:$PORT
     envVars:
       - key: GOOGLE_PLACES_API_KEY
         sync: false
@@ -15,5 +15,6 @@ services:
         value: False
       - key: FLASK_ENV
         value: production
+
 
 
