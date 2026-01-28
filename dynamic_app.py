@@ -49,7 +49,26 @@ CORS(app)
 @app.route('/')
 def index():
     # Serve the same frontend as Netlify (root index.html)
-    return send_file('index.html')
+    # Try multiple possible locations for index.html
+    possible_paths = [
+        Path('index.html'),  # Current directory (root)
+        Path.cwd() / 'index.html',  # Current working directory
+        Path(__file__).parent / 'index.html',  # Same directory as this file
+        Path('/opt/render/project/src/index.html'),  # Render's project root
+    ]
+    
+    # Try each path
+    for index_path in possible_paths:
+        if index_path.exists():
+            return send_file(str(index_path))
+    
+    # If none found, return error with debug info
+    return jsonify({
+        'error': 'index.html not found',
+        'searched_paths': [str(p) for p in possible_paths],
+        'current_file': str(Path(__file__)),
+        'cwd': str(Path.cwd())
+    }), 500
 
 
 @app.route('/api/status')

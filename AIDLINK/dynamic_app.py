@@ -51,21 +51,28 @@ def index():
     # Look for index.html in parent directory (root of project)
     # Get the absolute path to the project root
     current_file = Path(__file__).resolve()
-    project_root = current_file.parent.parent  # Go up from AIDLINK/ to root
-    index_path = project_root / 'index.html'
     
-    # Fallback: try current directory if parent doesn't exist
-    if not index_path.exists():
-        index_path = Path('index.html')
+    # Try multiple possible locations for index.html
+    possible_paths = [
+        current_file.parent.parent / 'index.html',  # Go up from AIDLINK/ to root
+        Path.cwd() / 'index.html',  # Current working directory
+        Path.cwd().parent / 'index.html',  # Parent of CWD
+        Path('/opt/render/project/src/index.html'),  # Render's project root
+        Path('index.html'),  # Relative to current directory
+    ]
     
-    if not index_path.exists():
-        # Last resort: try relative to current working directory
-        index_path = Path.cwd() / 'index.html'
+    # Try each path
+    for index_path in possible_paths:
+        if index_path.exists():
+            return send_file(str(index_path))
     
-    if not index_path.exists():
-        return jsonify({'error': 'index.html not found'}), 500
-    
-    return send_file(str(index_path))
+    # If none found, return error with debug info
+    return jsonify({
+        'error': 'index.html not found',
+        'searched_paths': [str(p) for p in possible_paths],
+        'current_file': str(current_file),
+        'cwd': str(Path.cwd())
+    }), 500
 
 
 @app.route('/api/status')
